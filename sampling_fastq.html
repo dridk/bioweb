@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=">
+  <link rel="stylesheet" href="static/css/pico.min.css">
+
+  <title></title>
+
+  <style>
+    .footer {
+
+      position: fixed;
+      bottom: 0;
+      padding-left: 5px;
+      width: 100%;
+      text-align: center;
+
+
+    }
+
+    #success_button {
+
+      width: 100%;
+      background-color: #47A417;
+    }
+
+    #apply_button {
+      width: 100%;
+
+    }
+
+    a#success_button,
+    a#success_button:hover,
+    a#success_button:visited,
+    a#success_button:active {
+
+      width: 100%;
+      text-align: center;
+      display: block;
+      font-size: 1em;
+      height: 3em;
+      text-align: center;
+      line-height: 3em;
+      background-color: #47A417;
+      margin-top: 10px;
+      border-radius: 5px 5px;
+      color: white;
+      text-decoration: none;
+    }
+  </style>
+
+
+
+
+
+</head>
+
+<body>
+
+  <header class="container">
+    <hgroup>
+      <h1>Bio web </h1>
+      <p>A collection a bioinformatics tools available a client side </p>
+    </hgroup>
+
+  </header>
+
+  <main class="container">
+    <h2>Fastq Sampling</h2>
+
+    <p> Downsampling fastq file to a specific read count.
+    <article>
+      <form>
+        <fieldset>
+          <label>
+            <h4> Select Fastq File </h4>
+
+
+            <input type="file" id="file_input" />
+        </fieldset>
+        <fieldset>
+          <label>
+            <h4>Read number </h4>
+          </label>
+          <input id="read_count_input" type="number" min="0" max="1000000000" name="file" value=50
+            placeholder="Read count" />
+
+        </fieldset>
+
+      </form>
+      <button aria-busy="false" id="apply_button">Run</button>
+
+      <em>Depending on the size of your file, this may take some time</em>
+
+      <a hidden id="success_button" href="" download="downsampling.fastq"> Download file </a>
+
+
+    </article>
+
+
+    <p id="result"> </p>
+
+  </main>
+
+  <footer class="footer">
+
+    <small>Bio web tools - @dridk Github - Powered by Biowasm</small>
+  </footer>
+
+
+</body>
+
+<script src="https://biowasm.com/cdn/v3/aioli.js"></script>
+<script type="module">
+
+  const CLI = await new Aioli(["seqtk/1.4"]);
+  const file_input = document.getElementById("file_input");
+  const apply_button = document.getElementById("apply_button");
+  const success_button = document.getElementById("success_button");
+  const read_count_input = document.getElementById("read_count_input");
+  let output_path = "";
+  const out = document.getElementById("result")
+
+  function set_ui_mode(running) {
+
+    apply_button.ariaBusy = running;
+    success_button.hidden = running;
+    apply_button.innerHTML = running ? "Processing ..." : "Run";
+    read_count_input.disabled = running;
+    file_input.disabled = running;
+
+  }
+
+
+  async function run() {
+
+    set_ui_mode(true);
+    const files = file_input.files;
+    const paths = await CLI.mount(files);
+    const filename = files[0]?.name;
+    const read_count = parseInt(read_count_input.value);
+
+    // Run biowasm 
+    let query = `seqtk sample ${paths[0]} ${read_count}`
+    let data = await CLI.exec(query);
+
+    if (data) {
+
+      await CLI.mount([{
+        name: "downsampling.fastq",
+        data: new Blob([data], {type: "text/plain"})
+      }]);
+
+      output_path = await CLI.download("downsampling.fastq");
+
+      success_button.href = output_path;
+      set_ui_mode(false);
+
+    }
+
+    apply_button.ariaBusy = false;
+
+
+  }
+
+
+
+  apply_button.addEventListener("click", run);
+
+
+
+</script>
+
+
+
+</html>
